@@ -114,10 +114,11 @@ try:
   posizione = Position_Control(x_stepper, y_stepper, x_delay, y_delay)
   posizione.fix_position()    #Put the structure in the center
   for line in open(filename, 'r'):
+    # Salvo nome file da disegnare
     fd = open('/home/pi/Desktop/Server/choosen.txt', 'w')
     fd.write(filename.split('/')[-1])
     fd.close()
-    # to check if the user stopped the process
+    # Controllo se l'utente ha fermato il gioco
     fd = open('/home/pi/Desktop/Server/processend.txt', 'r')
     check = int(fd.readline())
     if check == 0:
@@ -199,4 +200,15 @@ except KeyboardInterrupt:
   exit()
 
 finally:
+  # Reset processend
+  fd.close()
+  os.system('rm ' + '/home/pi/Desktop/Server/processend.txt')
+  fd = open('/home/pi/Desktop/Server/processend.txt', 'w')
+  fd.write('0')
+  fd.close()
+  # Save filename
+  fd = open('/home/pi/Desktop/Server/choosen.txt', 'w')
+  fd.write(filename)
+  fd.close()
+      
   GPIO.cleanup(); 

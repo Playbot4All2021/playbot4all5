@@ -3,22 +3,23 @@ import time
 from gpiozero import LED
 
 GPIO.setmode(GPIO.BCM)
-GPIO.setwarnings(False)
 '''
-led = LED(26)
+led = LED(19)
 led.on()
 time.sleep(100)
 led.off()
 
 '''
-GPIO.setup(26, GPIO.OUT)
+pin = 19
+
+GPIO.setup(pin, GPIO.OUT)
 
 print("led on")
-GPIO.output(26, 1)
-time.sleep(10)
+GPIO.output(pin, True)
+time.sleep(4)
 
 print("led off")
-GPIO.output(26, 0)
-time.sleep(100)
+GPIO.output(pin, 0)
+time.sleep(2)
 
 GPIO.cleanup()

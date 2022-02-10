@@ -2,7 +2,7 @@ import RPi.GPIO as GPIO
 import time
 
 GPIO.setmode(GPIO.BCM)
-'''
+
 #Asse x
 pin1 = 17
 pin2 = 12 #changed 18 to 12
@@ -14,7 +14,7 @@ pin1 = 23
 pin2 = 24
 pin3 = 25
 pin4 = 27
-
+'''
 GPIO.setup(pin1, GPIO.OUT)
 GPIO.setup(pin2, GPIO.OUT)
 GPIO.setup(pin3, GPIO.OUT)

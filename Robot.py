@@ -40,6 +40,8 @@ class Robot:
         time.sleep(0.5)
         
         self.testa.stop()
+        
+        GPIO.cleanup()
 
 
     def reazioneNegativa(self):
@@ -64,4 +66,6 @@ class Robot:
         time.sleep(0.5)
         
         self.testa.stop()
+        
+        GPIO.cleanup()
 

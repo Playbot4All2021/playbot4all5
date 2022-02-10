@@ -347,7 +347,7 @@ class Tracker(object):
         dist = numpy.linalg.norm(numpy.array(self.laser_pos) - numpy.array(self.pen_tip_pos))
         
         robot = Robot(15, 18) #Crea oggetto robot con azioni da svolgere
-        if(dist > 300):
+        if(dist > 200):
             robot.reazioneNegativa()
         else:
             robot.reazionePositiva()
@@ -399,6 +399,8 @@ class Tracker(object):
 
 
     def check_status(self):
+        # Return False se ho finito
+        # True se continuo
         # check if the user stopped the process
         fd = open('/home/pi/Desktop/Server/cameraend.txt', 'r')
         check = int(fd.readline())
@@ -411,9 +413,10 @@ class Tracker(object):
             fd = open('/home/pi/Desktop/Server/cameraend.txt', 'w')
             fd.write('0')
             fd.close()
-            return false # exit from external for
+            return False # exit from external for
     
         elif check == 2: # Interrompi (per un momento: riprendo dopo)
+            fd.close()
             counterclock = 0 
             while 1:
                 time.sleep(1)
@@ -421,10 +424,10 @@ class Tracker(object):
                 fd = open('/home/pi/Desktop/Server/cameraend.txt', 'r')
                 if int(fd.readline()) == 0:
                     fd.close()
-                    break
+                    return True
             if counterclock == 100: # Limit of waiting time
                 fd.close()
-                return false
+                return False
             # Reset processend
             fd.close()
             os.system('rm ' + '/home/pi/Desktop/Server/cameraend.txt')
@@ -432,7 +435,7 @@ class Tracker(object):
             fd.write('0')
             fd.close()
             
-            return true
+        return True
 
     def run(self, camera_num = 0):
         """
@@ -449,7 +452,7 @@ class Tracker(object):
         
             # Use ONLY if you're using the site
             # check if the user stopped the process
-            if(self.check_status == false):
+            if(self.check_status() == False):
                 break
             
 
@@ -482,12 +485,13 @@ class Tracker(object):
                     if type(video[1]) == type(None):
                         pass
                     else:
-                        cv2.imshow(f'{video[0]}', video[1])
+                        pass
+                        #cv2.imshow(f'{video[0]}', video[1]) # non da commentare se debug
             
             # to stop the process
-            key = cv2.waitKey(1)
-            if key == 27:
-                break
+            #key = cv2.waitKey(1)
+            #if key == 27:
+            #    break
             
             self.raw_capture.truncate(0)
             
@@ -496,8 +500,14 @@ class Tracker(object):
 
 
 if __name__ == '__main__':
-    tracker = Tracker(LASER=1, HAND=1, PAPER_MASK=0, LASER_MASK=0, HAND_MASK=0, PEN = 0, PEN_MASK=0, TIP_MASK=0)
+    tracker = Tracker(LASER=0, HAND=0, PAPER_MASK=0, LASER_MASK=0, HAND_MASK=0, PEN = 0, PEN_MASK=0, TIP_MASK=0) #sui primi due utile '1' per debug
 
     tracker.run()
     
     cv2.destroyAllWindows()
+'''                                    
+finally:
+    os.system('rm ' + '/home/pi/Desktop/Server/cameraend.txt')
+    fd = open('/home/pi/Desktop/Server/cameraend.txt', 'w')
+    fd.write('0')
+    fd.close()     ''' 
