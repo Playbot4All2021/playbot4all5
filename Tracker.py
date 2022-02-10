@@ -1,3 +1,7 @@
+'''
+PER USARE SENZA SITO, COMMENTARE RIGHE 448, 449
+'''
+
 import cv2
 import numpy
 import sys
@@ -9,6 +13,7 @@ from picamera.array import PiRGBArray
 import time
 import os
 
+from Robot import Robot
 
 
 # TODO: when the laser is behind the hand (the camera can't see it)
@@ -153,6 +158,7 @@ class Tracker(object):
 
         # finds max's coordinates of the red channel
         laser_index = numpy.unravel_index(numpy.argmax(r, axis=None), r.shape)
+        
         '''
         # finds max's coordinates (more red), but too slow.
         max_val = 0 # It's always 255
@@ -167,18 +173,20 @@ class Tracker(object):
         print(max_col, max_row)
         cv2.imshow('Red channel', r)
         '''
-
+        ''' Tolto perchè non funziona
         # same as for red: find the max coordinates of the h channel
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
         h, s, v = cv2.split(frame)
         bright_index = numpy.unravel_index(numpy.argmax(h, axis=None), h.shape)
-
+        
+        bright_index = laser_index
         # put together
         rows = [laser_index[1], bright_index[1]]
         cols = [laser_index[0], bright_index[0]]
 
         # compute the mean value
-        self.laser_pos = (int(statistics.mean(rows)), int(statistics.mean(cols)))
+        self.laser_pos = (int(statistics.mean(rows)), int(statistics.mean(cols)))'''
+        self.laser_pos = (laser_index[1], laser_index[0])
 
         # "fake" laser_mask. This laser_mask is useful only with laser_tracking_2:
         # for laser_tracking_1 I put this fake one to switch easily from one
@@ -202,8 +210,8 @@ class Tracker(object):
 
         # define hsv based mask
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-        lower = numpy.array([0, 0, 200], dtype="uint8")  # 0, 48, 80
-        upper = numpy.array([40, 255, 255], dtype="uint8")  # 20, 255, 255
+        lower = numpy.array([0, 48, 80], dtype="uint8")  # 0, 48, 80  #0, 0, 255
+        upper = numpy.array([40, 120, 120], dtype="uint8")  # 20, 255, 255  #40, 255, 255
         self.laser_mask = cv2.inRange(hsv, lower, upper)
 
         # find center (moment) of the area found
@@ -335,7 +343,14 @@ class Tracker(object):
 
     def play(self):
         # compute euclidean distance between laser and pen tip
+        
         dist = numpy.linalg.norm(numpy.array(self.laser_pos) - numpy.array(self.pen_tip_pos))
+        
+        robot = Robot(15, 18) #Crea oggetto robot con azioni da svolgere
+        if(dist > 300):
+            robot.reazioneNegativa()
+        else:
+            robot.reazionePositiva()
         print(dist)
 
 
@@ -383,6 +398,42 @@ class Tracker(object):
         return to_display
 
 
+    def check_status(self):
+        # check if the user stopped the process
+        fd = open('/home/pi/Desktop/Server/cameraend.txt', 'r')
+        check = int(fd.readline())
+        if check == 0:
+            fd.close()
+        elif check == 1: # Termina (definitivamente: smetto di disegnare)
+            # Reset processend
+            fd.close()
+            os.system('rm ' + '/home/pi/Desktop/Server/cameraend.txt')
+            fd = open('/home/pi/Desktop/Server/cameraend.txt', 'w')
+            fd.write('0')
+            fd.close()
+            return false # exit from external for
+    
+        elif check == 2: # Interrompi (per un momento: riprendo dopo)
+            counterclock = 0 
+            while 1:
+                time.sleep(1)
+                counterclock += 1
+                fd = open('/home/pi/Desktop/Server/cameraend.txt', 'r')
+                if int(fd.readline()) == 0:
+                    fd.close()
+                    break
+            if counterclock == 100: # Limit of waiting time
+                fd.close()
+                return false
+            # Reset processend
+            fd.close()
+            os.system('rm ' + '/home/pi/Desktop/Server/cameraend.txt')
+            fd = open('/home/pi/Desktop/Server/cameraend.txt', 'w')
+            fd.write('0')
+            fd.close()
+            
+            return true
+
     def run(self, camera_num = 0):
         """
         Run the program
@@ -392,40 +443,15 @@ class Tracker(object):
         self.setup_paper_mask()
         self.camera.close()
         self.setup_camera_capture(camera_num)
+        count = 0
         
         for capture in self.camera.capture_continuous(self.raw_capture, format="bgr", use_video_port = True):    
-            '''# check if the user stopped the process
-            fd = open('/home/pi/Desktop/Server/cameraend.txt', 'r')
-            check = int(fd.readline())
-            if check == 0:
-                fd.close()
-            elif check == 1: # Termina (definitivamente: smetto di disegnare)
-                # Reset processend
-                fd.close()
-                os.system('rm ' + '/home/pi/Desktop/Server/cameraend.txt')
-                fd = open('/home/pi/Desktop/Server/cameraend.txt', 'w')
-                fd.write('0')
-                fd.close()
-                break # exit from external for
-    
-            elif check == 2: # Interrompi (per un momento: riprendo dopo)
-                counterclock = 0 
-                while 1:
-                    time.sleep(1)
-                    counterclock += 1
-                    fd = open('/home/pi/Desktop/Server/cameraend.txt', 'r')
-                    if int(fd.readline()) == 0:
-                        fd.close()
-                        break
-                if counterclock == 100: # Limit of waiting time
-                    fd.close()
-                    break
-                # Reset processend
-                fd.close()
-                os.system('rm ' + '/home/pi/Desktop/Server/cameraend.txt')
-                fd = open('/home/pi/Desktop/Server/cameraend.txt', 'w')
-                fd.write('0')
-                fd.close()'''
+        
+            # Use ONLY if you're using the site
+            # check if the user stopped the process
+            if(self.check_status == false):
+                break
+            
 
             # capture the current image
             self.frame = capture.array
@@ -439,8 +465,13 @@ class Tracker(object):
             self.hand_tracking()
             self.pen_tracking()
 
-            # feedback and mark
-            self.play()
+            # feedback
+            if(count >= 50):
+                self.play()
+                count = 0
+            print(count)
+            count += 1
+            
 
             # display videos according to flags set
             to_display = self.display()
@@ -459,7 +490,8 @@ class Tracker(object):
                 break
             
             self.raw_capture.truncate(0)
-        
+            
+            
         #self.camera.release()
 
 
